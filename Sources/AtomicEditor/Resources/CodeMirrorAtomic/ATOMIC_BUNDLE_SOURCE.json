@@ -1,0 +1,8 @@
+{
+  "source_repository": "https://github.com/texteditors/atomic-editor.git",
+  "source_commit": "5b5c084d993bd7839caf69887f3386a4bbb04096",
+  "synced_at": "2026-06-18",
+  "bundle_location": "Sources/CodeMirrorAtomicEditor/Resources/CodeMirrorAtomic",
+  "workflow_document": "docs/AtomicCodeMirror/atomic-editor-workflow.md",
+  "notes": "Initial provenance record after removing Vendor/AtomicEditor from this repo. Future Atomic source edits should happen in the separate harness workspace and then be synced here."
+}
