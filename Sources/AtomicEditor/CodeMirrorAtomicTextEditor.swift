@@ -325,14 +325,14 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
                 ?? Bundle.module.resourceURL?.appendingPathComponent("Resources/CodeMirrorAtomic/index.html")
         }
 
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             didFinishLoadingEditor = true
             log("webview didFinish url=\(webView.url?.absoluteString ?? "nil")")
             pushConfigurationToEditor(force: true)
         }
 
-        func userContentController(_ userContentController: WKUserContentController,
-                                   didReceive message: WKScriptMessage) {
+        public func userContentController(_ userContentController: WKUserContentController,
+                                          didReceive message: WKScriptMessage) {
             guard message.name == parent.bridgeName,
                   let payload = message.body as? [String: Any],
                   let type = payload["type"] as? String else {
@@ -420,7 +420,7 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
             }
         }
 
-        func pushConfigurationToEditor(force: Bool) {
+        public func pushConfigurationToEditor(force: Bool) {
             guard isEditorReady,
                   didFinishLoadingEditor,
                   let webView,
@@ -512,19 +512,19 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
             }
         }
 
-        func webView(_ webView: WKWebView,
-                     didFail navigation: WKNavigation!,
-                     withError error: Error) {
+        public func webView(_ webView: WKWebView,
+                            didFail navigation: WKNavigation!,
+                            withError error: Error) {
             log("navigation failed: \(error.localizedDescription)")
         }
 
-        func webView(_ webView: WKWebView,
-                     didFailProvisionalNavigation navigation: WKNavigation!,
-                     withError error: Error) {
+        public func webView(_ webView: WKWebView,
+                            didFailProvisionalNavigation navigation: WKNavigation!,
+                            withError error: Error) {
             log("provisional navigation failed: \(error.localizedDescription)")
         }
 
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        public func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
             log("web content process terminated")
             isEditorReady = false
             didFinishLoadingEditor = false
