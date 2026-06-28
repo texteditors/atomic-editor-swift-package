@@ -100,6 +100,8 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
         print("[CodeMirrorAtomic] updateUIView bounds=\(Int(webView.bounds.width))x\(Int(webView.bounds.height)) textChars=\(text.count)")
         if webView.url == nil && webView.isLoading == false {
             context.coordinator.loadEditor()
+        } else if webView.url != nil && webView.isLoading == false && !context.coordinator.isEditorReady {
+            context.coordinator.recoverLoadedEditorIfPossible(on: webView)
         }
         context.coordinator.configureAccessory(for: webView)
         context.coordinator.updateToolbarAppearanceIfNeeded()
@@ -135,7 +137,7 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
         weak var webView: WKWebView?
         let commandController: AtomicEditorCommandController
 
-        private var isEditorReady = false
+        var isEditorReady = false
         private var didFinishLoadingEditor = false
         private var pendingFocusRequest = false
         private var didAutoFocus = false
@@ -533,7 +535,7 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
             webView.reload()
         }
 
-        private func recoverLoadedEditorIfPossible(on webView: WKWebView) {
+        func recoverLoadedEditorIfPossible(on webView: WKWebView) {
             guard webView.isLoading == false, webView.url != nil else {
                 return
             }
