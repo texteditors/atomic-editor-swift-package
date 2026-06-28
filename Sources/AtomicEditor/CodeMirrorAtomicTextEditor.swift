@@ -214,7 +214,13 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
             didAutoFocus = false
             pendingFocusRequest = false
             guard let webView else { return }
-            if webView.url == nil && webView.isLoading == false {
+            if webView.isLoading {
+                log("webview still loading on attach; reloading under live delegate")
+                webView.stopLoading()
+                loadEditor()
+                return
+            }
+            if webView.url == nil {
                 loadEditor()
                 return
             }
@@ -228,6 +234,9 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
                 return
             }
 
+            if webView.isLoading {
+                webView.stopLoading()
+            }
             didFinishLoadingEditor = false
             isEditorReady = false
             didAutoFocus = false
