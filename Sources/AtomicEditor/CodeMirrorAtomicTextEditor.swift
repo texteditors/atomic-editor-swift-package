@@ -322,18 +322,24 @@ public struct CodeMirrorAtomicTextEditor: UIViewRepresentable {
         }
 
         private static func editorHTMLURL() -> URL? {
-            if let url = Bundle.module.url(forResource: "index", withExtension: "html", subdirectory: "CodeMirrorAtomic") {
-                return url
+            let candidateURLs: [URL?] = [
+                Bundle.module.url(forResource: "index", withExtension: "html"),
+                Bundle.module.url(forResource: "index", withExtension: "html", subdirectory: "CodeMirrorAtomic"),
+                Bundle.module.url(forResource: "index", withExtension: "html", subdirectory: "Resources/CodeMirrorAtomic"),
+                Bundle.module.resourceURL?.appendingPathComponent("index.html"),
+                Bundle.module.resourceURL?.appendingPathComponent("CodeMirrorAtomic/index.html"),
+                Bundle.module.resourceURL?.appendingPathComponent("Resources/CodeMirrorAtomic/index.html")
+            ]
+
+            let fileManager = FileManager.default
+            for candidate in candidateURLs {
+                guard let candidate else { continue }
+                if fileManager.fileExists(atPath: candidate.path) {
+                    return candidate
+                }
             }
 
-            if let url = Bundle.module.url(forResource: "index",
-                                           withExtension: "html",
-                                           subdirectory: "Resources/CodeMirrorAtomic") {
-                return url
-            }
-
-            return Bundle.module.resourceURL?.appendingPathComponent("CodeMirrorAtomic/index.html")
-                ?? Bundle.module.resourceURL?.appendingPathComponent("Resources/CodeMirrorAtomic/index.html")
+            return nil
         }
 
         public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
