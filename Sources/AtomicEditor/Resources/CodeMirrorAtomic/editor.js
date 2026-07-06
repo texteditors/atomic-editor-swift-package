@@ -136,6 +136,147 @@ function replaceSelectionText(text, userEvent) {
   });
 }
 
+function selectedText() {
+  if (!editorView) {
+    return "";
+  }
+
+  const parts = [];
+  for (const range of editorView.state.selection.ranges) {
+    if (range.empty) {
+      continue;
+    }
+    parts.push(editorView.state.sliceDoc(range.from, range.to));
+  }
+  return parts.join(editorView.state.lineBreak);
+}
+
+function dispatchSelectionTransform(transform, userEvent = "input") {
+  if (!editorView) {
+    return;
+  }
+
+  const state = editorView.state;
+  const transaction = state.changeByRange((range) => transform(state, range));
+  editorView.dispatch(state.update(transaction, {
+    userEvent,
+    scrollIntoView: true,
+  }));
+}
+
+function wrapSelection(prefix, suffix) {
+  dispatchSelectionTransform((state, range) => {
+    const selected = state.sliceDoc(range.from, range.to);
+    const replacement = `${prefix}${selected}${suffix}`;
+    const anchor = range.from + prefix.length;
+    const selectionRange = range.empty
+      ? EditorSelection.cursor(anchor)
+      : EditorSelection.range(anchor, anchor + selected.length);
+    return {
+      changes: { from: range.from, to: range.to, insert: replacement },
+      range: selectionRange,
+    };
+  });
+}
+
+function insertText(text) {
+  replaceSelectionText(text ?? "", "input");
+}
+
+function prefixSelectedLines(prefix) {
+  dispatchSelectionTransform((state, range) => {
+    const lineRange = state.doc.lineAt(range.from);
+
+    if (range.empty) {
+      return {
+        changes: { from: lineRange.from, to: lineRange.from, insert: prefix },
+        range: EditorSelection.cursor(range.from + prefix.length),
+      };
+    }
+
+    const startLine = state.doc.lineAt(range.from);
+    const endLine = state.doc.lineAt(Math.max(range.from, range.to - 1));
+    const lines = [];
+    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
+      const line = state.doc.line(lineNumber);
+      lines.push(prefix + line.text);
+    }
+    const replacement = lines.join(state.lineBreak);
+    return {
+      changes: { from: startLine.from, to: endLine.to, insert: replacement },
+      range: EditorSelection.range(startLine.from, startLine.from + replacement.length),
+    };
+  });
+}
+
+function prefixOrderedList(startIndex = 1) {
+  dispatchSelectionTransform((state, range) => {
+    const lineRange = state.doc.lineAt(range.from);
+
+    if (range.empty) {
+      const prefix = `${startIndex}. `;
+      return {
+        changes: { from: lineRange.from, to: lineRange.from, insert: prefix },
+        range: EditorSelection.cursor(range.from + prefix.length),
+      };
+    }
+
+    const startLine = state.doc.lineAt(range.from);
+    const endLine = state.doc.lineAt(Math.max(range.from, range.to - 1));
+    let number = startIndex;
+    const lines = [];
+    for (let lineNumber = startLine.number; lineNumber <= endLine.number; lineNumber += 1) {
+      const line = state.doc.line(lineNumber);
+      if (line.text.length === 0) {
+        lines.push("");
+        continue;
+      }
+      lines.push(`${number}. ${line.text}`);
+      number += 1;
+    }
+    const replacement = lines.join(state.lineBreak);
+    return {
+      changes: { from: startLine.from, to: endLine.to, insert: replacement },
+      range: EditorSelection.range(startLine.from, startLine.from + replacement.length),
+    };
+  });
+}
+
+function replaceCurrentLinePrefix(prefix) {
+  if (!editorView) {
+    return;
+  }
+
+  const state = editorView.state;
+  const head = state.selection.main.from;
+  const line = state.doc.lineAt(head);
+  const replacement = `${prefix}${line.text.replace(/^#{1,6}\s+/, "")}`;
+  editorView.dispatch(state.update({
+    changes: { from: line.from, to: line.to, insert: replacement },
+    selection: EditorSelection.cursor(line.from + prefix.length),
+    userEvent: "input",
+    scrollIntoView: true,
+  }));
+}
+
+function insertMarkdownLink(url, customText = "") {
+  const trimmedURL = (url ?? "").trim();
+  if (!trimmedURL) {
+    return;
+  }
+
+  const selected = selectedText().replace(/\n/g, " ").trim();
+  const label = (customText ?? "").trim() || selected;
+  if (!label) {
+    insertText(trimmedURL);
+    return;
+  }
+
+  const escapedLabel = label.replace(/\]/g, "\\]");
+  const escapedURL = trimmedURL.replace(/\)/g, "\\)");
+  insertText(`[${escapedLabel}](${escapedURL})`);
+}
+
 function deleteRanges(ranges) {
   if (!editorView || ranges.length === 0) {
     return;
@@ -376,6 +517,13 @@ window.AtomicEditorHost = {
   pasteFromHostClipboard(text) {
     replaceSelectionText(text ?? "", "input.paste");
   },
+  selectedText,
+  wrapSelection,
+  insertText,
+  prefixSelectedLines,
+  prefixOrderedList,
+  replaceCurrentLinePrefix,
+  insertMarkdownLink,
 };
 
 function postEditorStatus(type) {
